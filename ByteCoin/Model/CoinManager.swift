@@ -13,7 +13,7 @@ protocol CoinManagerDelegate {
     func didFailWithError(error: Error)
 }
 
-struct CoinManager {
+class CoinManager {
     
     var delegate: CoinManagerDelegate?
     
@@ -31,23 +31,16 @@ struct CoinManager {
         if let url = URL(string: urlString){
             
             let session = URLSession(configuration: .default)
-            
             let task = session.dataTask(with: url) { (data, response, error) in
-                if error != nil {
-                    print(error!)
+                
+                if let error = error {
+                    self.delegate?.didFailWithError(error: error)
                     return
                 }
                 
-                if let safeData = data {
-                    if let bitcoinPrice = self.parseJSON(safeData){
-                        let priceString = String(format: "%.2f", bitcoinPrice)
-                        
-                        self.delegate?.didUpdatePrice(price: priceString, currency: currency)
-                    }
-                    
-                    
-                }
-                
+                guard let safeData = data, let bitcoinPrice = self.parseJSON(safeData) else { return }
+                let priceString = String(format: "%.2f", bitcoinPrice)
+                self.delegate?.didUpdatePrice(price: priceString, currency: currency)
             }
             task.resume()
         }
@@ -64,9 +57,8 @@ struct CoinManager {
             print(lastPrice)
             return lastPrice
         } catch {
-            
             delegate?.didFailWithError(error: error)
-        return nil
+            return nil
         }
     }
     
