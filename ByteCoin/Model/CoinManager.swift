@@ -28,22 +28,22 @@ class CoinManager {
         
         let urlString = "\(baseURL)/\(currency)?apiKey=\(apiKey)"
         
-        if let url = URL(string: urlString){
+        guard let url = URL(string: urlString) else { return }
+        
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: url) { (data, response, error) in
             
-            let session = URLSession(configuration: .default)
-            let task = session.dataTask(with: url) { (data, response, error) in
-                
-                if let error = error {
-                    self.delegate?.didFailWithError(error: error)
-                    return
-                }
-                
-                guard let safeData = data, let bitcoinPrice = self.parseJSON(safeData) else { return }
-                let priceString = String(format: "%.2f", bitcoinPrice)
-                self.delegate?.didUpdatePrice(price: priceString, currency: currency)
+            if let error = error {
+                self.delegate?.didFailWithError(error: error)
+                return
             }
-            task.resume()
+            
+            guard let safeData = data, let bitcoinPrice = self.parseJSON(safeData) else { return }
+            let priceString = String(format: "%.2f", bitcoinPrice)
+            self.delegate?.didUpdatePrice(price: priceString, currency: currency)
         }
+        task.resume()
+        
     }
     
     func parseJSON(_ data: Data) -> Double? {
